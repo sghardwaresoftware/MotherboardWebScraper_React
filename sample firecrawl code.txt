@@ -1,0 +1,75 @@
+const url = 'https://api.firecrawl.dev/v2/scrape';
+const options = {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer fc-99063d548f494d16aa96fdeaf2b986a9', //API key
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    "url": "https://www.asus.com/us/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b650m-plus-wifi/techspec/",
+    "onlyMainContent": true,
+    "maxAge": 172800000,
+    "parsers": [
+        "pdf"
+    ],
+    "formats": [
+        {
+            "type": "json",
+            "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                    "brand": {
+                        "type": "string"
+                      },
+                    "model_name": {
+                        "type": "string"
+                    },
+                    "chipset": {
+                        "type": "string"
+                    },
+                    "memory": {
+                        "type": "string"
+                    },
+                    "expansion_slots": {
+                        "type": "string"
+                    },
+                    "storage_slots": {
+                        "type": "string"
+                    },
+                    "networking": {
+                        "type": "string"
+                    },
+                    "usb_ports": {
+                        "type": "string"
+                    },
+                    "back_io_ports": {
+                        "type": "string"
+                    },
+                    "internal_io_connectors": {
+                        "type": "string"
+                    },
+                    "form_factor": {
+                        "type": "string"
+                    },
+                    "socket": {
+                        "type": "string"
+                    },
+                    "cpu": {
+                        "type": "string"
+                    }
+                }
+            },
+            "prompt": "Extract a comprehensive and exhaustive list of the motherboard's technical specifications. You must parse multi-line fields, listing every single line item explicitly, separated by newlines (\\n). Copy technical values verbatim, such as dimensions for 'form_factor'. Strictly do not summarize, truncate, or shorten anything. Discard all marketing copy and focus solely on raw hardware values."
+        }
+    ]
+})
+};
+
+try {
+  const response = await fetch(url, options);
+  const data = await response.json();
+  console.log(data);
+} catch (error) {
+  console.error(error);
+}
