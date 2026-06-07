@@ -1,2 +1,3 @@
 /mobo-web-scraper-react/node-modules
 /mobo-web-scraper-react/src/components/SearchScrapeMobo/ApiKeys.json
+*.txt
