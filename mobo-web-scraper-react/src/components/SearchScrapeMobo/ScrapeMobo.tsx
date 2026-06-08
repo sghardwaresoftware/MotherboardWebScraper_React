@@ -49,7 +49,7 @@ function ScrapeMobo({ apiKey, moboUrlList, newScrapeJob, scrapeJobIsDone }: Scra
             const posttMoboActionTimeout = setTimeout(() => {
                 
                 if (_moboScrapeObj.scrapeAborted || _moboScrapeObj.scrapeAllDone) {
-                    scrapeJobIsDone();
+                    scrapeJobIsDone(); return;
                 }
                 else if (_moboScrapeObj.isThisMoboDone) {
                     setMoboScrapeObJ(prevObj => ({ ...prevObj, 

@@ -5,17 +5,17 @@ import type { SearchResEntry, SearchScrapeObj } from "./SearchScrapeInterface";
 import ApiKeys from "./ApiKeys.json"; //manually add in your own copy
 
 function SearchScrapeMobo() {
-    const [_SearchScrapeObj, setSearchScrapeObj] = useState<SearchScrapeObj>({moboUrlList: [], newScrapeJob: false});
+    const [_SearchScrapeObj, setSearchScrapeObj] = useState<SearchScrapeObj>({moboUrlList: [], prevScrapeJobDone: false, newScrapeJob: false});
 
     function setMoboUrlList(searchResUrls:SearchResEntry[]) {
        setSearchScrapeObj(prevObj => ({
-            ...prevObj, moboUrlList: searchResUrls, newScrapeJob: true
+            ...prevObj, moboUrlList: searchResUrls, prevScrapeJobDone:false, newScrapeJob: true
        }));
     }
 
     function noNewScrapeJob() {
         setSearchScrapeObj(prevObj => ({
-            ...prevObj, moboUrlList: [], newScrapeJob: false
+            ...prevObj, moboUrlList: [], prevScrapeJobDone: true, newScrapeJob: false
        }));
     }
 
@@ -25,6 +25,7 @@ function SearchScrapeMobo() {
                 apiKey={ApiKeys.serper} 
                 returnMoboUrlList={setMoboUrlList} 
                 disableSearchBtn={_SearchScrapeObj.newScrapeJob}
+                resetSearch={_SearchScrapeObj.prevScrapeJobDone && !_SearchScrapeObj.newScrapeJob}
             />
             <ScrapeMobo 
                 apiKey={ApiKeys.firecrawl} 

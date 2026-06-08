@@ -4,10 +4,11 @@ import type { SearchResEntry } from "./SearchScrapeInterface";
 interface SearchMoboProps {
     apiKey: string;
     returnMoboUrlList: (searchResUrls:SearchResEntry[]) => void,
-    disableSearchBtn: boolean
+    disableSearchBtn: boolean,
+    resetSearch: boolean
 }
 
-function SearchMobo({ apiKey, returnMoboUrlList, disableSearchBtn }: SearchMoboProps) {
+function SearchMobo({ apiKey, returnMoboUrlList, disableSearchBtn, resetSearch }: SearchMoboProps) {
     const moboSearchObj = {
         "isSearching": false,
         "searchDone": false,
@@ -19,8 +20,14 @@ function SearchMobo({ apiKey, returnMoboUrlList, disableSearchBtn }: SearchMoboP
     const [_moboSearchObj, setMoboSearchObj] = useState(moboSearchObj);
 
     useEffect(() => {
+        if (resetSearch) {
+            setMoboSearchObj(prevObj => ({
+                ...prevObj, isSearching: false
+            }));
+        }
+
         if (_moboSearchObj.searchDone) { returnMoboUrlList(_moboSearchObj.searchResList); }
-    }, [_moboSearchObj ]);
+    }, [ resetSearch, _moboSearchObj ]);
 
     function handleFindMoboClick() {
         let searchTerm = moboSearchRef.current!.value.toLowerCase();

@@ -6,5 +6,6 @@ export interface SearchResEntry {
 
 export interface SearchScrapeObj {
     moboUrlList: SearchResEntry[],
+    prevScrapeJobDone: boolean,
     newScrapeJob: boolean
 }
