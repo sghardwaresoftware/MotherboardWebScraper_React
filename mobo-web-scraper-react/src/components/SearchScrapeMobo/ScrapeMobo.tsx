@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import type { ScrapeObj } from "./SearchScrapeInterface";
+import type { SearchResEntry } from "./SearchScrapeInterface";
 
 interface ScrapeMoboProps {
-    scrapeObj: ScrapeObj;
-    apiKey: string;
+    apiKey: string,
+    moboUrlList: SearchResEntry[],
+    newScrapeJob: boolean,
+    scrapeJobIsDone: () => void
 }
 
-function ScrapeMobo({ scrapeObj, apiKey }: ScrapeMoboProps) {
+function ScrapeMobo({ apiKey, moboUrlList, newScrapeJob, scrapeJobIsDone }: ScrapeMoboProps) {
     const moboScrapeObj = {
-        "runNumber": 0,
         "moboIndex": 0,
         "moboScrapeTime": 0,
         "isThisMoboDone": false,
@@ -18,23 +19,21 @@ function ScrapeMobo({ scrapeObj, apiKey }: ScrapeMoboProps) {
     }
 
     const [_moboScrapeObj, setMoboScrapeObJ] = useState(moboScrapeObj);  
-    const maxMoboScrapeTime = 10;
-
-    if (_moboScrapeObj.runNumber !== scrapeObj.runNumber) {
-        setMoboScrapeObJ(prevObj => ({ ...prevObj, 
-            runNumber: scrapeObj.runNumber, scrapeAborted: false, scrapeAllDone: false, scrapeSuccessfulCount: 0
-        }));
-    }
+    const maxMoboScrapeTime = 10; // seconds
+    const posttMoboActionTimeoutDelay = 1500 // milliseconds
 
     useEffect(() => {
-        if (scrapeObj.moboUrlList.length === 0 || _moboScrapeObj.scrapeAborted || _moboScrapeObj.scrapeAllDone) return;
+        if (!newScrapeJob) return;
 
         if (!_moboScrapeObj.isThisMoboDone) {
-            const moboUrl = scrapeObj.moboUrlList[_moboScrapeObj.moboIndex].link;
+            const moboUrl = moboUrlList[_moboScrapeObj.moboIndex].link;
 
             if (_moboScrapeObj.moboScrapeTime == maxMoboScrapeTime) {
                 setMoboScrapeObJ(prevObj => ({ ...prevObj, 
-                    isThisMoboDone: true, scrapeSuccessfulCount: prevObj.scrapeSuccessfulCount + 1, moboScrapeTime: 0
+                    isThisMoboDone: true, 
+                    scrapeSuccessfulCount: prevObj.scrapeSuccessfulCount + 1, 
+                    moboScrapeTime: 0,
+                    scrapeAllDone: _moboScrapeObj.moboIndex >= moboUrlList.length -1 ? true : false
                 }));
             }
 
@@ -47,32 +46,31 @@ function ScrapeMobo({ scrapeObj, apiKey }: ScrapeMoboProps) {
             return () => clearTimeout(doWorkTimeProgressTimeout);
         }
         else {
-            if (_moboScrapeObj.moboIndex >= scrapeObj.moboUrlList.length - 1) {
-                setMoboScrapeObJ(prevObj => ({ ...prevObj, 
-                    scrapeAllDone: true, moboIndex: 0, isThisMoboDone: false
-                }));
+            const posttMoboActionTimeout = setTimeout(() => {
+                
+                if (_moboScrapeObj.scrapeAborted || _moboScrapeObj.scrapeAllDone) {
+                    scrapeJobIsDone();
+                }
+                else if (_moboScrapeObj.isThisMoboDone) {
+                    setMoboScrapeObJ(prevObj => ({ ...prevObj, 
+                        moboIndex: prevObj.moboIndex + 1, isThisMoboDone: false
+                    }));
+                }
 
-                return;
-            }
+            }, posttMoboActionTimeoutDelay);
 
-            const proceedNxtMoboTimeout = setTimeout(() => {
-                setMoboScrapeObJ(prevObj => ({ ...prevObj, 
-                    moboIndex: prevObj.moboIndex + 1, isThisMoboDone: false
-                }));
-            }, 1500);
-
-            return () => clearTimeout(proceedNxtMoboTimeout);
+            return () => clearTimeout(posttMoboActionTimeout);
         }
-    }, [ scrapeObj.moboUrlList, _moboScrapeObj ]);
+    }, [ newScrapeJob, _moboScrapeObj ]);
 
     function abortScraping() {
         setMoboScrapeObJ(prevObj => ({ ...prevObj, 
-            scrapeAborted: true, moboScrapeTime: 0
+            isThisMoboDone: true, scrapeAborted: true, moboScrapeTime: 0
         }));
     }
 
-    if (scrapeObj.moboUrlList.length > 0) {
-        const moboTitle = scrapeObj.moboUrlList[_moboScrapeObj.moboIndex].title;
+    if (newScrapeJob) {
+        const moboTitle = moboUrlList[_moboScrapeObj.moboIndex].title;
         return (
             <>
                 <div>

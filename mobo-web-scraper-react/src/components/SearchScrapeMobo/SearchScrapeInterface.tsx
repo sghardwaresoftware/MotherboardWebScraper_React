@@ -4,7 +4,7 @@ export interface SearchResEntry {
     snippet: string;
 }
 
-export interface ScrapeObj {
-    runNumber: number,
-    moboUrlList: SearchResEntry[]
+export interface SearchScrapeObj {
+    moboUrlList: SearchResEntry[],
+    newScrapeJob: boolean
 }

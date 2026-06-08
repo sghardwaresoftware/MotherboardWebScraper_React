@@ -1,22 +1,26 @@
-import { useRef, useState } from "react"
-import type { SearchResEntry, ScrapeObj } from "./SearchScrapeInterface";
+import { useEffect, useRef, useState } from "react"
+import type { SearchResEntry } from "./SearchScrapeInterface";
 
 interface SearchMoboProps {
-    setSearchResList: (searchResList:ScrapeObj) => void; 
     apiKey: string;
+    returnMoboUrlList: (searchResUrls:SearchResEntry[]) => void,
+    disableSearchBtn: boolean
 }
 
-function SearchMobo({ setSearchResList, apiKey }: SearchMoboProps) {
+function SearchMobo({ apiKey, returnMoboUrlList, disableSearchBtn }: SearchMoboProps) {
     const moboSearchObj = {
-        "searchRun": 0,
         "isSearching": false,
         "searchDone": false,
         "searchTerm": "",
-        "searchResCount": 0
+        "searchResList": [] as SearchResEntry[]
     };
 
     const moboSearchRef = useRef<HTMLInputElement>(null);
     const [_moboSearchObj, setMoboSearchObj] = useState(moboSearchObj);
+
+    useEffect(() => {
+        if (_moboSearchObj.searchDone) { returnMoboUrlList(_moboSearchObj.searchResList); }
+    }, [_moboSearchObj ]);
 
     function handleFindMoboClick() {
         let searchTerm = moboSearchRef.current!.value.toLowerCase();
@@ -28,7 +32,6 @@ function SearchMobo({ setSearchResList, apiKey }: SearchMoboProps) {
 
         setMoboSearchObj(prevObj => ({
             ...prevObj, 
-            searchRun: prevObj.searchRun + 1,
             isSearching: true, 
             searchDone: false, 
             searchResCount: 0, 
@@ -56,11 +59,8 @@ function SearchMobo({ setSearchResList, apiKey }: SearchMoboProps) {
             console.log(searchResList);
 
             setMoboSearchObj(prevObj => ({
-                ...prevObj, searchDone: true, searchTerm: "", searchResCount: searchResList.length
+                ...prevObj, searchDone: true, searchTerm: "", searchResList: searchResList
             }));
-
-            setSearchResList({runNumber: _moboSearchObj.searchRun, moboUrlList: searchResList});
-
         } catch (error) {
             console.error(error);
         }
@@ -90,12 +90,12 @@ function SearchMobo({ setSearchResList, apiKey }: SearchMoboProps) {
                 <div className="input-group">
                     <label className="input-group-text">Motherboard search: </label>
                     <input type="text" ref={moboSearchRef} className="form-control" />
-                    <button onClick={handleFindMoboClick} className="form-control">Find Motherboard</button>
+                    <button onClick={handleFindMoboClick} className="form-control" disabled={disableSearchBtn}>Search Motherboard(s)</button>
                 </div>
                 <div style={{ display: `${_moboSearchObj.isSearching ? 'block' : 'none'}` }}>
                     <p>{
                          _moboSearchObj.searchDone ? 
-                        `Found ${_moboSearchObj.searchResCount} result(s)!` : 
+                        `Found ${_moboSearchObj.searchResList.length} result(s)!` : 
                         `Searching for \"${_moboSearchObj.searchTerm}\"...`
                     }</p>
                 </div>
