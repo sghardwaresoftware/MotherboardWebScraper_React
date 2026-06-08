@@ -3,3 +3,8 @@ export interface SearchResEntry {
     link: string;
     snippet: string;
 }
+
+export interface ScrapeObj {
+    runNumber: number,
+    moboUrlList: SearchResEntry[]
+}

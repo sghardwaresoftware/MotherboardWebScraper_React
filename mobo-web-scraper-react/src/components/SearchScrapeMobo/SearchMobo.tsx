@@ -1,13 +1,14 @@
 import { useRef, useState } from "react"
-import type { SearchResEntry } from "./SearchResEntry";
+import type { SearchResEntry, ScrapeObj } from "./SearchScrapeInterface";
 
 interface SearchMoboProps {
-    setSearchResList: (searchResList:SearchResEntry[]) => void; 
+    setSearchResList: (searchResList:ScrapeObj) => void; 
     apiKey: string;
 }
 
 function SearchMobo({ setSearchResList, apiKey }: SearchMoboProps) {
     const moboSearchObj = {
+        "searchRun": 0,
         "isSearching": false,
         "searchDone": false,
         "searchTerm": "",
@@ -21,12 +22,17 @@ function SearchMobo({ setSearchResList, apiKey }: SearchMoboProps) {
         let searchTerm = moboSearchRef.current!.value.toLowerCase();
         if (searchTerm.includes("asus")) searchTerm = `${searchTerm} specifications site:asus.com`
         else if (searchTerm.includes("msi")) searchTerm = `${searchTerm} specifications site:msi.com`
-        else if (searchTerm.includes("gigabyte")) searchTerm = `${searchTerm} specifications sitegigabyte.com`
+        else if (searchTerm.includes("gigabyte")) searchTerm = `${searchTerm} specifications site:gigabyte.com`
         else if (searchTerm.includes("asrock")) searchTerm = `${searchTerm} specifications site:asrock.com`
         else { alert("Unknown brand or brand is not entered!"); return; }
 
         setMoboSearchObj(prevObj => ({
-            ...prevObj, isSearching: true, searchDone: false, searchResCount: 0, searchTerm: moboSearchRef.current!.value
+            ...prevObj, 
+            searchRun: prevObj.searchRun + 1,
+            isSearching: true, 
+            searchDone: false, 
+            searchResCount: 0, 
+            searchTerm: moboSearchRef.current!.value
         }));
         searchSomething(searchTerm);
     }
@@ -44,6 +50,7 @@ function SearchMobo({ setSearchResList, apiKey }: SearchMoboProps) {
         try {
             const response = await fetch(finalUrl);
             const data = await response.json();
+            console.log(data);
   
             const searchResList:SearchResEntry[] = data['organic'].filter((entry:SearchResEntry) => isTechSpecPage(entry.link));
             console.log(searchResList);
@@ -52,7 +59,7 @@ function SearchMobo({ setSearchResList, apiKey }: SearchMoboProps) {
                 ...prevObj, searchDone: true, searchTerm: "", searchResCount: searchResList.length
             }));
 
-            setSearchResList(searchResList);
+            setSearchResList({runNumber: _moboSearchObj.searchRun, moboUrlList: searchResList});
 
         } catch (error) {
             console.error(error);
@@ -66,7 +73,7 @@ function SearchMobo({ setSearchResList, apiKey }: SearchMoboProps) {
         //const fragment = parsed.hash.toLowerCase(); // e.g. "#specification"
 
         if (domain.includes("asus.com"))
-            return path.endsWith("techspec");
+            return (path.endsWith("techspec") || path.endsWith("spec"));
         if (domain.includes("msi.com"))
             return path.endsWith("specification");
         if (domain.includes("gigabyte.com"))
@@ -88,7 +95,7 @@ function SearchMobo({ setSearchResList, apiKey }: SearchMoboProps) {
                 <div style={{ display: `${_moboSearchObj.isSearching ? 'block' : 'none'}` }}>
                     <p>{
                          _moboSearchObj.searchDone ? 
-                        `Search is completed with ${_moboSearchObj.searchResCount} result(s)` : 
+                        `Found ${_moboSearchObj.searchResCount} result(s)!` : 
                         `Searching for \"${_moboSearchObj.searchTerm}\"...`
                     }</p>
                 </div>

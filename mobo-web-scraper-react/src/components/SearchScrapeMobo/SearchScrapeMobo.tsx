@@ -1,20 +1,20 @@
 import { useState } from "react"
 import SearchMobo from "./SearchMobo";
 import ScrapeMobo from "./ScrapeMobo";
-import type { SearchResEntry } from "./SearchResEntry";
+import type { ScrapeObj } from "./SearchScrapeInterface";
 import ApiKeys from "./ApiKeys.json"; //manually add in your own copy
 
 function SearchScrapeMobo() {
-    const [_moboUrlList, setMoboUrlList] = useState<SearchResEntry[]>([]);
+    const [_scrapeObj, setScrapeObj] = useState<ScrapeObj>({runNumber: 0, moboUrlList: []});
 
-    function copyToMoboUrlList(searchResList:SearchResEntry[]) {
-        setMoboUrlList(searchResList);
+    function copyToScrapeObj(scrapeObj:ScrapeObj) {
+       setScrapeObj(scrapeObj)
     }
 
     return (
         <div className="container-md">
-            <SearchMobo setSearchResList={copyToMoboUrlList} apiKey={ApiKeys.serper}/>
-            <ScrapeMobo moboUrlList={_moboUrlList} apiKey={ApiKeys.firecrawl}/>
+            <SearchMobo setSearchResList={copyToScrapeObj} apiKey={ApiKeys.serper}/>
+            <ScrapeMobo scrapeObj={_scrapeObj} apiKey={ApiKeys.firecrawl}/>
         </div>
     )
 }
