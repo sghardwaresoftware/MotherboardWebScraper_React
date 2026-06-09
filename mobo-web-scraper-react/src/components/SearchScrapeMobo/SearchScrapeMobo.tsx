@@ -1,38 +1,47 @@
 import { useState } from "react"
 import SearchMobo from "./SearchMobo";
 import ScrapeMobo from "./ScrapeMobo";
-import type { SearchResEntry, SearchScrapeObj } from "./SearchScrapeInterface";
+import type { SearchResEntry } from "./SearchScrapeInterface";
 import ApiKeys from "./ApiKeys.json"; //manually add in your own copy
 
 function SearchScrapeMobo() {
-    const [_SearchScrapeObj, setSearchScrapeObj] = useState<SearchScrapeObj>({moboUrlList: [], prevScrapeJobDone: false, newScrapeJob: false});
-
-    function setMoboUrlList(searchResUrls:SearchResEntry[]) {
-       setSearchScrapeObj(prevObj => ({
-            ...prevObj, moboUrlList: searchResUrls, prevScrapeJobDone:false, newScrapeJob: true
-       }));
-    }
-
-    function noNewScrapeJob() {
-        setSearchScrapeObj(prevObj => ({
-            ...prevObj, moboUrlList: [], prevScrapeJobDone: true, newScrapeJob: false
-       }));
-    }
+    const [moboUrlList, setMoboUrlList] = useState<SearchResEntry[]>([]);
+    const [isSearchRunning, setSearchRunning] = useState<boolean>(false);
+    const [isScrapeRunning, setScrapeRunning] = useState<boolean>(false);
+    const [operationCompleted, setOperationCompleted] = useState<boolean>(false);
 
     return (
         <div className="container-md">
             <SearchMobo 
                 apiKey={ApiKeys.serper} 
-                returnMoboUrlList={setMoboUrlList} 
-                disableSearchBtn={_SearchScrapeObj.newScrapeJob}
-                resetSearch={_SearchScrapeObj.prevScrapeJobDone && !_SearchScrapeObj.newScrapeJob}
+                beginSearch={ () => {
+                    setSearchRunning(true);
+                    setOperationCompleted(false);
+                }}
+                searchCompleted={ (moboUrlList) => {
+                    setMoboUrlList(moboUrlList);
+                    setSearchRunning(false);
+                    moboUrlList.length != 0 ? setScrapeRunning(true) : setOperationCompleted(true);
+                }}
+                isSearchRunning={isSearchRunning}
+                isScrapeRunning={isScrapeRunning}
+                operationCompleted={operationCompleted}
             />
-            <ScrapeMobo 
-                apiKey={ApiKeys.firecrawl} 
-                moboUrlList={_SearchScrapeObj.moboUrlList} 
-                newScrapeJob={_SearchScrapeObj.newScrapeJob} 
-                scrapeJobIsDone={noNewScrapeJob} 
-            />
+            {
+                isScrapeRunning && !operationCompleted && (
+                    <ScrapeMobo 
+                        apiKey={ApiKeys.firecrawl} 
+                        moboUrlList={moboUrlList}
+                        scrapeCompleted={ () => {
+                            setScrapeRunning(false);
+                            setOperationCompleted(true);
+                        }}
+                        isScrapeRunning={isScrapeRunning}
+                        operationCompleted={operationCompleted}
+                    />
+                )
+            }
+            <p>{operationCompleted ? "Operation completed!" : ""}</p>
         </div>
     )
 }

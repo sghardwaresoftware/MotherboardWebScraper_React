@@ -3,31 +3,55 @@ import type { SearchResEntry } from "./SearchScrapeInterface";
 
 interface SearchMoboProps {
     apiKey: string;
-    returnMoboUrlList: (searchResUrls:SearchResEntry[]) => void,
-    disableSearchBtn: boolean,
-    resetSearch: boolean
+    beginSearch: () => void;
+    searchCompleted: (moboUrlList:SearchResEntry[]) => void;
+    isSearchRunning: boolean;
+    isScrapeRunning: boolean;
+    operationCompleted: boolean;
 }
 
-function SearchMobo({ apiKey, returnMoboUrlList, disableSearchBtn, resetSearch }: SearchMoboProps) {
+function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isScrapeRunning, operationCompleted }: SearchMoboProps) {
     const moboSearchObj = {
-        "isSearching": false,
         "searchDone": false,
         "searchTerm": "",
         "searchResList": [] as SearchResEntry[]
     };
 
     const moboSearchRef = useRef<HTMLInputElement>(null);
+    const beginSearchFlagRef = useRef<boolean>(false);
+    const operationAlrCompletedFlagRef = useRef<boolean>(false);
     const [_moboSearchObj, setMoboSearchObj] = useState(moboSearchObj);
 
+    const postMoboSearchActionDelay = 1000; // milliseconds
+
     useEffect(() => {
-        if (resetSearch) {
+        if (_moboSearchObj.searchTerm !== "" && !beginSearchFlagRef.current) {
+            beginSearchFlagRef.current = true;
+            operationAlrCompletedFlagRef.current = false;
+            beginSearch();
+        }
+
+        if (operationCompleted && !operationAlrCompletedFlagRef.current) {
+            console.log("esgtsegt");
+            operationAlrCompletedFlagRef.current = true;
+
             setMoboSearchObj(prevObj => ({
-                ...prevObj, isSearching: false
+                ...prevObj, 
+                searchDone: false, searchResList: []
             }));
         }
 
-        if (_moboSearchObj.searchDone) { returnMoboUrlList(_moboSearchObj.searchResList); }
-    }, [ resetSearch, _moboSearchObj ]);
+        if (isSearchRunning && !_moboSearchObj.searchDone) { searchSomething(); }
+
+        if (_moboSearchObj.searchDone) {
+            const postMoboSearchActionTimeout = setTimeout(() => {
+                beginSearchFlagRef.current = false;
+                searchCompleted(_moboSearchObj.searchResList);
+            }, postMoboSearchActionDelay);
+
+            return () => clearTimeout(postMoboSearchActionTimeout);
+        }
+    }, [isSearchRunning, operationCompleted, _moboSearchObj]);
 
     function handleFindMoboClick() {
         let searchTerm = moboSearchRef.current!.value.toLowerCase();
@@ -39,18 +63,14 @@ function SearchMobo({ apiKey, returnMoboUrlList, disableSearchBtn, resetSearch }
 
         setMoboSearchObj(prevObj => ({
             ...prevObj, 
-            isSearching: true, 
-            searchDone: false, 
-            searchResCount: 0, 
-            searchTerm: moboSearchRef.current!.value
+            searchTerm: searchTerm
         }));
-        searchSomething(searchTerm);
     }
 
-    async function searchSomething(searchTerm:string) {
+    async function searchSomething() {
         const baseUrl = 'https://google.serper.dev/search';
         const params = new URLSearchParams({
-            q: searchTerm,
+            q: _moboSearchObj.searchTerm,
             gl: 'sg',
             page: '1',
             apiKey: apiKey //ApiKeys.json
@@ -66,7 +86,10 @@ function SearchMobo({ apiKey, returnMoboUrlList, disableSearchBtn, resetSearch }
             console.log(searchResList);
 
             setMoboSearchObj(prevObj => ({
-                ...prevObj, searchDone: true, searchTerm: "", searchResList: searchResList
+                ...prevObj, 
+                searchDone: true, 
+                searchTerm: "", 
+                searchResList: searchResList
             }));
         } catch (error) {
             console.error(error);
@@ -97,9 +120,13 @@ function SearchMobo({ apiKey, returnMoboUrlList, disableSearchBtn, resetSearch }
                 <div className="input-group">
                     <label className="input-group-text">Motherboard search: </label>
                     <input type="text" ref={moboSearchRef} className="form-control" />
-                    <button onClick={handleFindMoboClick} className="form-control" disabled={disableSearchBtn}>Search Motherboard(s)</button>
+                    <button 
+                        onClick={handleFindMoboClick} 
+                        className="form-control"
+                        disabled={isSearchRunning || isScrapeRunning ? true : false}
+                    >Search Motherboard(s)</button>
                 </div>
-                <div style={{ display: `${_moboSearchObj.isSearching ? 'block' : 'none'}` }}>
+                <div style={{ display: `${isSearchRunning ? 'block' : 'none'}` }}>
                     <p>{
                          _moboSearchObj.searchDone ? 
                         `Found ${_moboSearchObj.searchResList.length} result(s)!` : 

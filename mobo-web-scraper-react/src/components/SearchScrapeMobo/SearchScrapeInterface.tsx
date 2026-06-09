@@ -3,9 +3,3 @@ export interface SearchResEntry {
     link: string;
     snippet: string;
 }
-
-export interface SearchScrapeObj {
-    moboUrlList: SearchResEntry[],
-    prevScrapeJobDone: boolean,
-    newScrapeJob: boolean
-}

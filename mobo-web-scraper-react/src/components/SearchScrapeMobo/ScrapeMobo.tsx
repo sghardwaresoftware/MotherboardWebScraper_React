@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import type { SearchResEntry } from "./SearchScrapeInterface";
 
 interface ScrapeMoboProps {
-    apiKey: string,
-    moboUrlList: SearchResEntry[],
-    newScrapeJob: boolean,
-    scrapeJobIsDone: () => void
+    apiKey: string;
+    moboUrlList: SearchResEntry[];
+    scrapeCompleted: () => void;
+    isScrapeRunning: boolean;
+    operationCompleted: boolean;
 }
 
-function ScrapeMobo({ apiKey, moboUrlList, newScrapeJob, scrapeJobIsDone }: ScrapeMoboProps) {
+function ScrapeMobo({ apiKey, moboUrlList, scrapeCompleted, isScrapeRunning, operationCompleted }: ScrapeMoboProps) {
     const moboScrapeObj = {
         "moboIndex": 0,
         "moboScrapeTime": 0,
@@ -19,11 +20,13 @@ function ScrapeMobo({ apiKey, moboUrlList, newScrapeJob, scrapeJobIsDone }: Scra
     }
 
     const [_moboScrapeObj, setMoboScrapeObJ] = useState(moboScrapeObj);  
+
     const maxMoboScrapeTime = 10; // seconds
     const posttMoboActionTimeoutDelay = 1500 // milliseconds
 
+    const moboTitle = isScrapeRunning ? moboUrlList[_moboScrapeObj.moboIndex].title : "";
+
     useEffect(() => {
-        if (!newScrapeJob) return;
 
         if (!_moboScrapeObj.isThisMoboDone) {
             const moboUrl = moboUrlList[_moboScrapeObj.moboIndex].link;
@@ -46,22 +49,23 @@ function ScrapeMobo({ apiKey, moboUrlList, newScrapeJob, scrapeJobIsDone }: Scra
             return () => clearTimeout(doWorkTimeProgressTimeout);
         }
         else {
+            console.log("Post mobo action");
+
             const posttMoboActionTimeout = setTimeout(() => {
-                
                 if (_moboScrapeObj.scrapeAborted || _moboScrapeObj.scrapeAllDone) {
-                    scrapeJobIsDone(); return;
+                    scrapeCompleted();
                 }
                 else if (_moboScrapeObj.isThisMoboDone) {
                     setMoboScrapeObJ(prevObj => ({ ...prevObj, 
                         moboIndex: prevObj.moboIndex + 1, isThisMoboDone: false
                     }));
                 }
-
             }, posttMoboActionTimeoutDelay);
 
             return () => clearTimeout(posttMoboActionTimeout);
         }
-    }, [ newScrapeJob, _moboScrapeObj ]);
+
+    }, [ isScrapeRunning, operationCompleted, moboUrlList, _moboScrapeObj ]);
 
     function abortScraping() {
         setMoboScrapeObJ(prevObj => ({ ...prevObj, 
@@ -69,35 +73,28 @@ function ScrapeMobo({ apiKey, moboUrlList, newScrapeJob, scrapeJobIsDone }: Scra
         }));
     }
 
-    if (newScrapeJob) {
-        const moboTitle = moboUrlList[_moboScrapeObj.moboIndex].title;
-        return (
-            <>
-                <div>
-                    <div className="input-group">
-                        <p className="input-group-text">{ 
-                            _moboScrapeObj.scrapeAborted ?
-                            "Scraping motherboard information is aborted!" :
-                            _moboScrapeObj.scrapeAllDone ?
-                            `All done! Successfully scraped ${_moboScrapeObj.scrapeSuccessfulCount} motherboard URL(s).` :
-                            _moboScrapeObj.isThisMoboDone ?
-                            `Successfully scraped \"${moboTitle}\". Moving on...` :
-                            `Scraping information for motherboard \"${moboTitle}\"...`
-                        }</p>
-                        <button onClick={abortScraping} className="form-control">Stop Scraping</button>
-                    </div>
-                    
-                    <div className="progress">
-                        <div className="progress-bar" role="progressbar" style={{ width: `${_moboScrapeObj.moboScrapeTime / maxMoboScrapeTime * 100}%`, height: '35px' }} aria-valuenow={_moboScrapeObj.moboScrapeTime} aria-valuemin={0} aria-valuemax={maxMoboScrapeTime}></div>
-                    </div>
+    return (
+        <>
+            <div style={{ display: isScrapeRunning || !operationCompleted ? "block" : "none" }}>
+                <div className="input-group">
+                    <p className="input-group-text">{ 
+                        _moboScrapeObj.scrapeAborted ?
+                        "Scraping motherboard information is aborted!" :
+                        _moboScrapeObj.scrapeAllDone ?
+                        `All done! Successfully scraped ${_moboScrapeObj.scrapeSuccessfulCount} motherboard URL(s).` :
+                        _moboScrapeObj.isThisMoboDone ?
+                        `Successfully scraped \"${moboTitle}\". Moving on...` :
+                        `Scraping information for motherboard \"${moboTitle}\"...`
+                    }</p>
+                    <button onClick={abortScraping} className="form-control">Stop Scraping</button>
                 </div>
-            </>
-        )
-    }
-    else { 
-        return ( <> </> )
-    }
-    
+                
+                <div className="progress">
+                    <div className="progress-bar" role="progressbar" style={{ width: `${_moboScrapeObj.moboScrapeTime / maxMoboScrapeTime * 100}%`, height: '35px' }} aria-valuenow={_moboScrapeObj.moboScrapeTime} aria-valuemin={0} aria-valuemax={maxMoboScrapeTime}></div>
+                </div>
+            </div>
+        </>
+    )
 }
 
 export default ScrapeMobo;
