@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import SearchMobo from "./SearchMobo";
 import ScrapeMobo from "./ScrapeMobo";
 import type { SearchResEntry } from "./SearchScrapeInterface";
@@ -9,6 +9,16 @@ function SearchScrapeMobo() {
     const [isSearchRunning, setSearchRunning] = useState<boolean>(false);
     const [isScrapeRunning, setScrapeRunning] = useState<boolean>(false);
     const [operationCompleted, setOperationCompleted] = useState<boolean>(false);
+
+    const resetOperationDelay = 5000 // milliseconds
+
+    useEffect(() => {
+        const restartOperationTimeout = setTimeout(() => {
+            setOperationCompleted(false);
+        }, resetOperationDelay);
+
+        return () => clearTimeout(restartOperationTimeout);
+    }, [ operationCompleted ]);
 
     return (
         <div className="container-md">
@@ -29,19 +39,17 @@ function SearchScrapeMobo() {
             />
             {
                 isScrapeRunning && !operationCompleted && (
-                    <ScrapeMobo 
+                    <ScrapeMobo
                         apiKey={ApiKeys.firecrawl} 
                         moboUrlList={moboUrlList}
                         scrapeCompleted={ () => {
                             setScrapeRunning(false);
                             setOperationCompleted(true);
                         }}
-                        isScrapeRunning={isScrapeRunning}
-                        operationCompleted={operationCompleted}
                     />
                 )
             }
-            <p>{operationCompleted ? "Operation completed!" : ""}</p>
+            <p>{operationCompleted ? "Search and scrape completed! Refreshing in a while..." : ""}</p>
         </div>
     )
 }

@@ -5,11 +5,9 @@ interface ScrapeMoboProps {
     apiKey: string;
     moboUrlList: SearchResEntry[];
     scrapeCompleted: () => void;
-    isScrapeRunning: boolean;
-    operationCompleted: boolean;
 }
 
-function ScrapeMobo({ apiKey, moboUrlList, scrapeCompleted, isScrapeRunning, operationCompleted }: ScrapeMoboProps) {
+function ScrapeMobo({ apiKey, moboUrlList, scrapeCompleted }: ScrapeMoboProps) {
     const moboScrapeObj = {
         "moboIndex": 0,
         "moboScrapeTime": 0,
@@ -24,10 +22,9 @@ function ScrapeMobo({ apiKey, moboUrlList, scrapeCompleted, isScrapeRunning, ope
     const maxMoboScrapeTime = 10; // seconds
     const posttMoboActionTimeoutDelay = 1500 // milliseconds
 
-    const moboTitle = isScrapeRunning ? moboUrlList[_moboScrapeObj.moboIndex].title : "";
+    const moboTitle = moboUrlList[_moboScrapeObj.moboIndex].title;
 
     useEffect(() => {
-
         if (!_moboScrapeObj.isThisMoboDone) {
             const moboUrl = moboUrlList[_moboScrapeObj.moboIndex].link;
 
@@ -65,7 +62,7 @@ function ScrapeMobo({ apiKey, moboUrlList, scrapeCompleted, isScrapeRunning, ope
             return () => clearTimeout(posttMoboActionTimeout);
         }
 
-    }, [ isScrapeRunning, operationCompleted, moboUrlList, _moboScrapeObj ]);
+    }, [ moboUrlList, _moboScrapeObj ]);
 
     function abortScraping() {
         setMoboScrapeObJ(prevObj => ({ ...prevObj, 
@@ -75,7 +72,7 @@ function ScrapeMobo({ apiKey, moboUrlList, scrapeCompleted, isScrapeRunning, ope
 
     return (
         <>
-            <div style={{ display: isScrapeRunning || !operationCompleted ? "block" : "none" }}>
+            <div>
                 <div className="input-group">
                     <p className="input-group-text">{ 
                         _moboScrapeObj.scrapeAborted ?

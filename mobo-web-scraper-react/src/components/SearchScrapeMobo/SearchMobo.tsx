@@ -17,7 +17,7 @@ function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isS
         "searchResList": [] as SearchResEntry[]
     };
 
-    const moboSearchRef = useRef<HTMLInputElement>(null);
+    const moboSearchTextboxRef = useRef<HTMLInputElement>(null);
     const beginSearchFlagRef = useRef<boolean>(false);
     const operationAlrCompletedFlagRef = useRef<boolean>(false);
     const [_moboSearchObj, setMoboSearchObj] = useState(moboSearchObj);
@@ -25,14 +25,8 @@ function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isS
     const postMoboSearchActionDelay = 1000; // milliseconds
 
     useEffect(() => {
-        if (_moboSearchObj.searchTerm !== "" && !beginSearchFlagRef.current) {
-            beginSearchFlagRef.current = true;
-            operationAlrCompletedFlagRef.current = false;
-            beginSearch();
-        }
-
         if (operationCompleted && !operationAlrCompletedFlagRef.current) {
-            console.log("esgtsegt");
+            console.log("Resetting search");
             operationAlrCompletedFlagRef.current = true;
 
             setMoboSearchObj(prevObj => ({
@@ -41,11 +35,17 @@ function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isS
             }));
         }
 
+        if (_moboSearchObj.searchTerm !== "" && !beginSearchFlagRef.current) {
+            beginSearchFlagRef.current = true;
+            if (operationAlrCompletedFlagRef.current) operationAlrCompletedFlagRef.current = false;
+            beginSearch();
+        }
+
         if (isSearchRunning && !_moboSearchObj.searchDone) { searchSomething(); }
 
         if (_moboSearchObj.searchDone) {
             const postMoboSearchActionTimeout = setTimeout(() => {
-                beginSearchFlagRef.current = false;
+                if (beginSearchFlagRef.current) beginSearchFlagRef.current = false;
                 searchCompleted(_moboSearchObj.searchResList);
             }, postMoboSearchActionDelay);
 
@@ -54,7 +54,7 @@ function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isS
     }, [isSearchRunning, operationCompleted, _moboSearchObj]);
 
     function handleFindMoboClick() {
-        let searchTerm = moboSearchRef.current!.value.toLowerCase();
+        let searchTerm = moboSearchTextboxRef.current!.value.toLowerCase();
         if (searchTerm.includes("asus")) searchTerm = `${searchTerm} specifications site:asus.com`
         else if (searchTerm.includes("msi")) searchTerm = `${searchTerm} specifications site:msi.com`
         else if (searchTerm.includes("gigabyte")) searchTerm = `${searchTerm} specifications site:gigabyte.com`
@@ -109,7 +109,7 @@ function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isS
         if (domain.includes("gigabyte.com"))
             return path.endsWith("/sp");
         if (domain.includes("asrock.com"))
-            return path.includes("index.asp");
+            return path.includes("index.asp") && path.includes("/mb/");
 
         return false;
     }
@@ -119,20 +119,24 @@ function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isS
             <div className="border border-primary">
                 <div className="input-group">
                     <label className="input-group-text">Motherboard search: </label>
-                    <input type="text" ref={moboSearchRef} className="form-control" />
+                    <input type="text" ref={moboSearchTextboxRef} className="form-control" />
                     <button 
                         onClick={handleFindMoboClick} 
                         className="form-control"
                         disabled={isSearchRunning || isScrapeRunning ? true : false}
                     >Search Motherboard(s)</button>
                 </div>
-                <div style={{ display: `${isSearchRunning ? 'block' : 'none'}` }}>
-                    <p>{
-                         _moboSearchObj.searchDone ? 
-                        `Found ${_moboSearchObj.searchResList.length} result(s)!` : 
-                        `Searching for \"${_moboSearchObj.searchTerm}\"...`
-                    }</p>
-                </div>
+                {
+                    isSearchRunning && (
+                        <div>
+                            <p>{
+                                _moboSearchObj.searchDone ? 
+                                `Found ${_moboSearchObj.searchResList.length} result(s)!` : 
+                                `Searching for \"${moboSearchTextboxRef.current!.value}\"...`
+                            }</p>
+                        </div>
+                    )
+                }
             </div>
             
         </>
