@@ -1,46 +1,28 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react'
 
 function TestLongTask() {
-    const [progress, setProgress] = useState<number>(-1);
-    const [status, setStatus] = useState<string>('Idle');
-    const [data, setData] = useState<string>("");
+    const [progress, setProgress] = useState(0);
 
-    const taskAlreadyRunning = useRef<boolean>(false);
-    const progressInterval = useRef<number | null>(null);
+    const progressTaskRef = useRef<number | null>(null);
+    const statusRef = useRef<string>("idle");
+    const dataRef = useRef<string>("");
+    const itemIndexRef = useRef<number>(0);
 
-    const startProgress = () => {
-        setProgress(0);
+    const longTaskTimeoutWait = 20000; // in milliseconds
+    const progressBarInterval = (longTaskTimeoutWait + 1000) / 100; // add 1 second to ensure progress bar is not 100% if timeout
+    const items = ["item1", "item2", "item3"];
 
-        console.log("im running here");
-
-        // increase progress by 1% every 200ms, to acheive 20s timeout
-        progressInterval.current = setInterval(() => {
-            setProgress((prev) => (prev < 90 ? prev + 1 : prev));
-        }, 200);
-    };
-
-    const stopProgress = () => {
-        setProgress(0);
-
-        if (progressInterval.current) {
-            clearInterval(progressInterval.current);
-        }
-    };
-
-    const fetchData = async () => {
-        startProgress();
-        setStatus('Starting...');
-        setData("");
-
+    async function runLongTask() {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort('Timeout reached'), 20000); // 20s timeout
+        const timeoutId = setTimeout(() => controller.abort('Timeout reached'), longTaskTimeoutWait); 
+        statusRef.current = "running";
 
         try {
             const response = await fetch('https://0e5b84ad-faf7-4fa3-9d6d-141325be66ab.mock.pstmn.io/delay20secs', {
                 method: "GET",
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-mock-response-delay': '15000' 
+                    'x-mock-response-delay': '18000' // make sure actual task finishes max 2 seconds before timeout wait
                 },
                 signal: controller.signal
             });
@@ -48,59 +30,73 @@ function TestLongTask() {
             if (!response.ok) throw new Error('Fetch failed');
             
             const result = await response.json();
-            setData(JSON.stringify(result));
-            if (taskAlreadyRunning.current) taskAlreadyRunning.current = false; 
-            setStatus('Success!');
-            setProgress(100);
+            dataRef.current = JSON.stringify(result);
+            statusRef.current = "success";
             
         } catch (error: any) {
             if (error.name === 'AbortError' || error === 'Timeout reached') {
-                setStatus('Request Timed Out');
+                statusRef.current = "timedOut";
             } 
             else {
-                setStatus(`Error: ${error.message}`);
+                statusRef.current = "fetchFailed";
             }
         } finally {
             clearTimeout(timeoutId);
-            stopProgress();
-        }
-    };
-
-    function beginFetchData() {
-        if (!taskAlreadyRunning.current) {
-            taskAlreadyRunning.current = true;
-            fetchData();
+            setProgress(0);
         }
     }
 
+    function abortScraping() {
+        statusRef.current = "aborted";
+    }
+
     useEffect(() => {
-        beginFetchData();
-        return () => stopProgress(); // Cleanup interval on unmount
-    }, []);
+        if (!progressTaskRef.current) {
+            progressTaskRef.current = setInterval(() => {
+                setProgress((prev) => (prev < 99 ? prev + 1 : prev));
+            }, progressBarInterval);
+
+            runLongTask();
+        }
+        if (progressTaskRef.current && !(statusRef.current == "idle" || statusRef.current == "running")) {
+            clearInterval(progressTaskRef.current);
+            progressTaskRef.current = null;
+            statusRef.current = "idle";
+
+
+        }
+        if (progressTaskRef.current && progress < 99) return;
+
+        return () => {
+            if (progressTaskRef.current) {
+                clearInterval(progressTaskRef.current);
+                progressTaskRef.current = null;
+            }
+        }
+    }, [ progress ]);
+
+    let statusText = ""
+    if (statusRef.current == "idle") statusText = "Idle";
+    else if (statusRef.current == "running") statusText = `(${items[itemIndexRef.current]}) Long task in progress...`;
+    else if (statusRef.current == "success") statusText = `Long task finished successfully! Response data: {${dataRef.current}}`;
+    else if (statusRef.current == "timedOut") statusText = "Long task timed out after 20 seconds";
+    else if (statusRef.current == "aborted") statusText = "Long task is aborted";
+    else if (statusRef.current == "fetchFailed") statusText = "Long task failed with error(s)";
 
     return (
-        <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-            <button onClick={beginFetchData} style={{ padding: '10px 20px', marginBottom: '20px' }} disabled={taskAlreadyRunning.current}>
-                Fetch Data
-            </button>
-
-            {/* Progress Bar UI */}
-            <div style={{ width: '100%', backgroundColor: '#e0e0e0', borderRadius: '5px' }}>
-            <div 
-                style={{
-                width: `${progress}%`,
-                height: '10px',
-                backgroundColor: '#3b82f6',
-                borderRadius: '5px',
-                transition: 'width 0.3s ease-in-out'
-                }}
-            />
+        <>
+            <div className="subContainer">
+                <div className="input-group">
+                    <label className="input-group-text col-10">{statusText}</label>
+                    <button onClick={abortScraping} className="btn btn-secondary col-2">Stop Scraping</button>
+                </div>
+                
+                <div className="progress mt-2">
+                    <div className="progress-bar" role="progressbar" style={{ width: `${progress}%`, height: '35px' }} aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}></div>
+                </div>
             </div>
-            
-            <p><strong>Status:</strong> {status}</p>
-            {data && <p style={{ background: '#f4f4f4', padding: '10px' }}>{data}</p>}
-        </div>
-    );
+        </>
+    )
 }
 
-export default TestLongTask;
+export default TestLongTask
