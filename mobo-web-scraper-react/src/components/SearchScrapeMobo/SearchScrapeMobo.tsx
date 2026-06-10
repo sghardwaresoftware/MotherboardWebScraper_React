@@ -3,6 +3,7 @@ import SearchMobo from "./SearchMobo";
 import ScrapeMobo from "./ScrapeMobo";
 import type { SearchResEntry } from "./SearchScrapeInterface";
 import ApiKeys from "./ApiKeys.json"; //manually add in your own copy
+import './SearchScrapeMobo.css'
 
 function SearchScrapeMobo() {
     const [moboUrlList, setMoboUrlList] = useState<SearchResEntry[]>([]);
@@ -49,7 +50,11 @@ function SearchScrapeMobo() {
                     />
                 )
             }
-            <p>{operationCompleted ? "Search and scrape completed! Refreshing in a while..." : ""}</p>
+            {
+                operationCompleted && (
+                    <div className="subContainer bg-success text-white">Search and scrape completed! Refreshing in a while...</div>
+                )
+            }
         </div>
     )
 }

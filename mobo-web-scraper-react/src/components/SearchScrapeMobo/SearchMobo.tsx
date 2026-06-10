@@ -116,19 +116,19 @@ function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isS
 
     return (
         <>
-            <div className="border border-primary">
+            <div className="border border-primary subContainer">
                 <div className="input-group">
-                    <label className="input-group-text">Motherboard search: </label>
+                    <label className="input-group-text col-2 text-wrap">Motherboard search: </label>
                     <input type="text" ref={moboSearchTextboxRef} className="form-control" />
                     <button 
                         onClick={handleFindMoboClick} 
-                        className="form-control"
+                        className="btn btn-primary col-3"
                         disabled={isSearchRunning || isScrapeRunning ? true : false}
                     >Search Motherboard(s)</button>
                 </div>
                 {
                     isSearchRunning && (
-                        <div>
+                        <div className="mt-2">
                             <p>{
                                 _moboSearchObj.searchDone ? 
                                 `Found ${_moboSearchObj.searchResList.length} result(s)!` : 
