@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import type { MoboUrlEntry } from "./SearchScrapeInterface";
 
 interface SearchMoboProps {
@@ -8,16 +8,31 @@ interface SearchMoboProps {
 }
 
 function SearchMobo({ apiKey, returnSearchStarted, returnMoboUrlList }: SearchMoboProps) {
+    const [isIdle, setIsIdle] = useState<boolean>(true);
     const moboSearchTextboxRef = useRef<HTMLInputElement>(null);
     const searchStatus = useRef<string>("idle");
     const searchTerm = useRef<string>("");
     const moboUrlList = useRef<MoboUrlEntry[]>([])
 
-
-    const postMoboSearchActionDelay = 1000; // milliseconds
+    const postMoboSearchActionDelay = 1500; // milliseconds
 
     useEffect(() => {
-        if (searchStatus.current === "searchStarted") searchSomething();
+        if (!isIdle && searchStatus.current === "idle") {
+            searchStatus.current = "searchStarted";
+            returnSearchStarted();
+        }
+
+        if (searchStatus.current === "searchStarted") {
+            searchStatus.current = "doingSearch";
+            searchSomething();
+        } 
+
+        if (searchStatus.current === "searchCompleted") {
+            setTimeout(() => {
+                searchStatus.current = "idle";
+                setIsIdle(true);
+            }, postMoboSearchActionDelay);
+        }
     });
 
     function handleFindMoboClick() {
@@ -28,8 +43,7 @@ function SearchMobo({ apiKey, returnSearchStarted, returnMoboUrlList }: SearchMo
         else if (searchTerm.current.includes("asrock")) searchTerm.current += " specifications site:asrock.com"
         else { alert("Unknown brand or brand is not entered!"); return; }
 
-        searchStatus.current = "searchStarted";
-        returnSearchStarted();
+        setIsIdle(false);
     }
 
     async function searchSomething() {
@@ -76,7 +90,7 @@ function SearchMobo({ apiKey, returnSearchStarted, returnMoboUrlList }: SearchMo
     }
 
     let searchStatusText = "";
-    if (searchStatus.current === "searchStarted") searchStatusText = `Searching for \"${moboSearchTextboxRef.current!.value}\"...`;
+    if (searchStatus.current === "doingSearch") searchStatusText = `Searching for \"${moboSearchTextboxRef.current!.value}\"...`;
     else if (searchStatus.current === "searchCompleted") searchStatusText = `Found ${moboUrlList.current.length} result(s)!`
 
     return (
@@ -92,7 +106,7 @@ function SearchMobo({ apiKey, returnSearchStarted, returnMoboUrlList }: SearchMo
                     >Search Motherboard(s)</button>
                 </div>
                 {
-                    searchStatus.current !== "idle" && (
+                    !isIdle && (
                         <div className="mt-2">{searchStatusText}</div>
                     )
                 }
