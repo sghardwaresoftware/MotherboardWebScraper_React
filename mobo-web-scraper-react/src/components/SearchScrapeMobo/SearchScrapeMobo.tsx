@@ -1,60 +1,47 @@
-import { useState, useEffect } from "react"
+import { useRef, useState, useEffect } from "react"
 import SearchMobo from "./SearchMobo";
 import ScrapeMobo from "./ScrapeMobo";
-import type { SearchResEntry } from "./SearchScrapeInterface";
+import type { MoboUrlEntry } from "./SearchScrapeInterface";
 import ApiKeys from "./ApiKeys.json"; //manually add in your own copy
 import './SearchScrapeMobo.css'
 
 function SearchScrapeMobo() {
-    const [moboUrlList, setMoboUrlList] = useState<SearchResEntry[]>([]);
-    const [isSearchRunning, setSearchRunning] = useState<boolean>(false);
-    const [isScrapeRunning, setScrapeRunning] = useState<boolean>(false);
-    const [operationCompleted, setOperationCompleted] = useState<boolean>(false);
+    const [progressStage, setProgressStage] = useState<string>("idle");
+    const moboUrlList = useRef<MoboUrlEntry[]>([]);
+    const progressText = useRef<string>("");
 
     const resetOperationDelay = 5000 // milliseconds
 
-    useEffect(() => {
-        const restartOperationTimeout = setTimeout(() => {
-            setOperationCompleted(false);
-        }, resetOperationDelay);
+    function checkMoboUrlList(_moboUrlList:MoboUrlEntry[]) {
+        if (_moboUrlList.length == 0) setProgressStage("operationCompleted");
+        else {
+            moboUrlList.current = _moboUrlList;
+            setProgressStage("scrapeStarted");
+        }
+    }
 
-        return () => clearTimeout(restartOperationTimeout);
-    }, [ operationCompleted ]);
+    if (progressStage === "idle") progressText.current = "Doing nothing.";
+    else if (progressStage === "searchStarted") progressText.current = "Searching for motherboard(s)...";
+    else if (progressStage === "scrapeStarted") progressText.current = "Scraping motherboard(s) specfications...";
+    else if (progressStage === "operationCompleted") progressText.current = "Operation completed! Refreshing in a while...";
 
     return (
         <div className="container-md">
             <SearchMobo 
                 apiKey={ApiKeys.serper} 
-                beginSearch={ () => {
-                    setSearchRunning(true);
-                    setOperationCompleted(false);
-                }}
-                searchCompleted={ (moboUrlList) => {
-                    setMoboUrlList(moboUrlList);
-                    setSearchRunning(false);
-                    moboUrlList.length != 0 ? setScrapeRunning(true) : setOperationCompleted(true);
-                }}
-                isSearchRunning={isSearchRunning}
-                isScrapeRunning={isScrapeRunning}
-                operationCompleted={operationCompleted}
+                returnSearchStarted={() => setProgressStage("searchStarted")}
+                returnMoboUrlList={checkMoboUrlList}
             />
-            {
-                isScrapeRunning && !operationCompleted && (
+            { /*
+                progressStage == "scrapeStarted" && (
                     <ScrapeMobo
                         apiKey={ApiKeys.firecrawl} 
-                        moboUrlList={moboUrlList}
-                        scrapeCompleted={ () => {
-                            setScrapeRunning(false);
-                            setOperationCompleted(true);
-                        }}
+                        
                     />
                 )
+                */
             }
-            {
-                operationCompleted && (
-                    <div className="subContainer bg-success text-white">Search and scrape completed! Refreshing in a while...</div>
-                )
-            }
+            <div className="subContainer bg-dark text-white">{progressText.current}</div>
         </div>
     )
 }

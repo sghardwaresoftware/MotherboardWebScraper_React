@@ -1,76 +1,41 @@
 import { useEffect, useRef, useState } from "react"
-import type { SearchResEntry } from "./SearchScrapeInterface";
+import type { MoboUrlEntry } from "./SearchScrapeInterface";
 
 interface SearchMoboProps {
     apiKey: string;
-    beginSearch: () => void;
-    searchCompleted: (moboUrlList:SearchResEntry[]) => void;
-    isSearchRunning: boolean;
-    isScrapeRunning: boolean;
-    operationCompleted: boolean;
+    returnSearchStarted: () => void;
+    returnMoboUrlList: (moboUrlList:MoboUrlEntry[]) => void;
 }
 
-function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isScrapeRunning, operationCompleted }: SearchMoboProps) {
-    const moboSearchObj = {
-        "searchDone": false,
-        "searchTerm": "",
-        "searchResList": [] as SearchResEntry[]
-    };
-
+function SearchMobo({ apiKey, returnSearchStarted, returnMoboUrlList }: SearchMoboProps) {
     const moboSearchTextboxRef = useRef<HTMLInputElement>(null);
-    const beginSearchFlagRef = useRef<boolean>(false);
-    const operationAlrCompletedFlagRef = useRef<boolean>(false);
-    const [_moboSearchObj, setMoboSearchObj] = useState(moboSearchObj);
+    const searchStatus = useRef<string>("idle");
+    const searchTerm = useRef<string>("");
+    const moboUrlList = useRef<MoboUrlEntry[]>([])
+
 
     const postMoboSearchActionDelay = 1000; // milliseconds
 
     useEffect(() => {
-        if (operationCompleted && !operationAlrCompletedFlagRef.current) {
-            console.log("Resetting search");
-            operationAlrCompletedFlagRef.current = true;
-
-            setMoboSearchObj(prevObj => ({
-                ...prevObj, 
-                searchDone: false, searchResList: []
-            }));
-        }
-
-        if (_moboSearchObj.searchTerm !== "" && !beginSearchFlagRef.current) {
-            beginSearchFlagRef.current = true;
-            if (operationAlrCompletedFlagRef.current) operationAlrCompletedFlagRef.current = false;
-            beginSearch();
-        }
-
-        if (isSearchRunning && !_moboSearchObj.searchDone) { searchSomething(); }
-
-        if (_moboSearchObj.searchDone) {
-            const postMoboSearchActionTimeout = setTimeout(() => {
-                if (beginSearchFlagRef.current) beginSearchFlagRef.current = false;
-                searchCompleted(_moboSearchObj.searchResList);
-            }, postMoboSearchActionDelay);
-
-            return () => clearTimeout(postMoboSearchActionTimeout);
-        }
-    }, [isSearchRunning, operationCompleted, _moboSearchObj]);
+        if (searchStatus.current === "searchStarted") searchSomething();
+    });
 
     function handleFindMoboClick() {
-        let searchTerm = moboSearchTextboxRef.current!.value.toLowerCase();
-        if (searchTerm.includes("asus")) searchTerm = `${searchTerm} specifications site:asus.com`
-        else if (searchTerm.includes("msi")) searchTerm = `${searchTerm} specifications site:msi.com`
-        else if (searchTerm.includes("gigabyte")) searchTerm = `${searchTerm} specifications site:gigabyte.com`
-        else if (searchTerm.includes("asrock")) searchTerm = `${searchTerm} specifications site:asrock.com`
+        searchTerm.current = moboSearchTextboxRef.current!.value.toLowerCase();
+        if (searchTerm.current.includes("asus")) searchTerm.current += " specifications site:asus.com"
+        else if (searchTerm.current.includes("msi")) searchTerm.current += " specifications site:msi.com"
+        else if (searchTerm.current.includes("gigabyte")) searchTerm.current += " specifications site:gigabyte.com"
+        else if (searchTerm.current.includes("asrock")) searchTerm.current += " specifications site:asrock.com"
         else { alert("Unknown brand or brand is not entered!"); return; }
 
-        setMoboSearchObj(prevObj => ({
-            ...prevObj, 
-            searchTerm: searchTerm
-        }));
+        searchStatus.current = "searchStarted";
+        returnSearchStarted();
     }
 
     async function searchSomething() {
         const baseUrl = 'https://google.serper.dev/search';
         const params = new URLSearchParams({
-            q: _moboSearchObj.searchTerm,
+            q: searchTerm.current,
             gl: 'sg',
             page: '1',
             apiKey: apiKey //ApiKeys.json
@@ -82,15 +47,11 @@ function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isS
             const data = await response.json();
             console.log(data);
   
-            const searchResList:SearchResEntry[] = data['organic'].filter((entry:SearchResEntry) => isTechSpecPage(entry.link));
-            console.log(searchResList);
+            moboUrlList.current = data['organic'].filter((entry:MoboUrlEntry) => isTechSpecPage(entry.link));
+            console.log(moboUrlList.current);
 
-            setMoboSearchObj(prevObj => ({
-                ...prevObj, 
-                searchDone: true, 
-                searchTerm: "", 
-                searchResList: searchResList
-            }));
+            searchStatus.current = "searchCompleted";
+            returnMoboUrlList(moboUrlList.current);
         } catch (error) {
             console.error(error);
         }
@@ -114,6 +75,10 @@ function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isS
         return false;
     }
 
+    let searchStatusText = "";
+    if (searchStatus.current === "searchStarted") searchStatusText = `Searching for \"${moboSearchTextboxRef.current!.value}\"...`;
+    else if (searchStatus.current === "searchCompleted") searchStatusText = `Found ${moboUrlList.current.length} result(s)!`
+
     return (
         <>
             <div className="border border-primary subContainer">
@@ -123,20 +88,15 @@ function SearchMobo({ apiKey, beginSearch, searchCompleted, isSearchRunning, isS
                     <button 
                         onClick={handleFindMoboClick} 
                         className="btn btn-primary col-3"
-                        disabled={isSearchRunning || isScrapeRunning ? true : false}
+                        disabled={false}
                     >Search Motherboard(s)</button>
                 </div>
                 {
-                    isSearchRunning && (
-                        <div className="mt-2">
-                            <p>{
-                                _moboSearchObj.searchDone ? 
-                                `Found ${_moboSearchObj.searchResList.length} result(s)!` : 
-                                `Searching for \"${moboSearchTextboxRef.current!.value}\"...`
-                            }</p>
-                        </div>
+                    searchStatus.current !== "idle" && (
+                        <div className="mt-2">{searchStatusText}</div>
                     )
                 }
+                
             </div>
             
         </>
